@@ -6,6 +6,29 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 db = SQLAlchemy()
 
 
+class Plan(db.Model):
+    __tablename__ = "plans"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(50), unique=True)
+    price_cents: Mapped[int]
+    currency: Mapped[str] = mapped_column(String(3), default="CRC")
+    max_staff: Mapped[int]
+    max_bookings: Mapped[int]
+    features: Mapped[str] = mapped_column(Text)
+
+    tenants: Mapped[list["Tenant"]] = relationship(back_populates="plan")
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "price_cents": self.price_cents,
+            "currency": self.currency,
+            "max_staff": self.max_staff,
+            "max_bookings": self.max_bookings,
+            "features": self.features
+        }
+
 class Tenant(db.Model):
     __tablename__: "tenants"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -13,13 +36,15 @@ class Tenant(db.Model):
     dni: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     subdomain: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     create_at: Mapped[datetime ] = mapped_column(DateTime, default=datetime.utcnow)
-
+    plan_id: Mapped[int] = mapped_column(ForeignKey(Plan.id), nullable=False)
     users: Mapped[list["User"]] = relationship(back_populates="tenant")
     services: Mapped[list["Service"]] = relationship(back_populates="tenant")
     staff: Mapped[list["Staff"]] = relationship(back_populates="tenant")
     customers: Mapped[list["Customer"]] = relationship(back_populates="tenant")
     bookings: Mapped[list["Booking"]] = relationship(back_populates="tenant")
     email_logs: Mapped[list["EmailLog"]] = relationship(back_populates="tenant")
+
+    plan: Mapped["Plan"] = relationship(back_populates="tenants")
 
     def serialize(self):
         return {
