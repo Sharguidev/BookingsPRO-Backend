@@ -31,12 +31,12 @@ class Plan(db.Model):
 
 class Tenant(db.Model):
     __tablename__: "tenants"
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     name: Mapped[str] = mapped_column(String(120),  nullable=False)
     dni: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     subdomain: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     create_at: Mapped[datetime ] = mapped_column(DateTime, default=datetime.utcnow)
-    plan_id: Mapped[int] = mapped_column(ForeignKey(Plan.id), nullable=False)
+    plan_id: Mapped[int] = mapped_column(ForeignKey(Plan.id), nullable=False, default=2)
     users: Mapped[list["User"]] = relationship(back_populates="tenant")
     services: Mapped[list["Service"]] = relationship(back_populates="tenant")
     staff: Mapped[list["Staff"]] = relationship(back_populates="tenant")
@@ -51,16 +51,18 @@ class Tenant(db.Model):
             "id": self.id, 
             "name": self.name, 
             "dni": self.dni,
-            "subdomain": self.subdomain}
+            "subdomain": self.subdomain, 
+            "create_at": self.create_at,
+            }
 
 
 class User(db.Model):
     __tablename__= "user"
-    tenant_id: Mapped[int] = mapped_column(ForeignKey(Tenant.id), nullable=False)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey(Tenant.id), nullable=False, default=6)
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100))
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(nullable=False)
+    password: Mapped[str] = mapped_column(nullable=False)
     role: Mapped[str] = mapped_column(String(50), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False)
 
@@ -71,7 +73,8 @@ class User(db.Model):
             "id": self.id,
             "name": self.name,
             "email": self.email,
-            "role": self.role    
+            "role": self.role,
+            "is_active": self.is_active    
             # do not serialize the password, its a security breach
         }
 
@@ -79,7 +82,7 @@ class Service(db.Model):
     __tablename__="services"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    tenant_id: Mapped[int] = mapped_column(ForeignKey(Tenant.id), nullable=False)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey(Tenant.id), nullable=False, default=5)
     name: Mapped[str] = mapped_column(String(100))
     description: Mapped[str] = mapped_column(Text)
     duration_minutes: Mapped[int]
