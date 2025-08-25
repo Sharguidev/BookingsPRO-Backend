@@ -78,7 +78,7 @@ def register_tenant_owner():
     )
 
     db.session.add(new_tenant)
-    db.session.flush()
+    db.session.flush() # get tenant.id without committing yet
 
     #hashear la contraseña
     pass_hashed = generate_password_hash(user_data['password'])
@@ -100,6 +100,53 @@ def register_tenant_owner():
 
     return jsonify({"msg": "User created successfully"}), 200
 
+#Get all tenants
+@app.route('/tenants', methods=['GET'])
+def get_tenant():
+    tenants = Tenant.query.all()
+    return jsonify([tenant.serialize() for tenant in tenants]), 200
+
+
+#get tenant by id
+@app.route('/tenants/<int:id>', methods=['GET'])
+def get_tenant_by_id(id):
+    tenant = Tenant.query.get(id)
+    if not tenant:
+        return jsonify({"msg":"Tenant not found"}), 404
+    return jsonify(tenant.serialize()), 200
+    
+
+#Update tenant
+@app.route('/tenants/<int:id>', methods=['PUT'])
+def update_tenant(id):
+    data = request.get_json()
+    tenant = Tenant.query.get(id)
+    if not tenant:
+        return jsonify({"msg":"Tenant not found"}), 404
+    tenant.name = data.get('name', tenant.name)
+    tenant.dni = data.get('dni', tenant.dni)
+    tenant.subdomain = data.get('subdomain', tenant.subdomain)
+    db.session.commit()
+    return jsonify(tenant.serialize()), 200
+
+#Delete tenant/ modify tomorrow 
+@app.route('/tenants-user/<int:id>', methods=['DELETE'])
+def delete_tenant(id):
+    tenant = Tenant.query.get(id)
+    user = User.query.filter_by(tenant_id=id, role='Owner').first()
+    if not tenant:
+        return jsonify({"msg":"Tenant not found"}), 404
+    if not user:
+        return jsonify({"msg":"Owner not found for this tenant"}), 404
+    db.session.delete(tenant)
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({
+        "msg":"Tenant and owner deleted successfully",
+        "Deleted Tenant": tenant.id,
+        "Deleted Owner": user.id
+        }), 200
+    
 
 #INSERT USER ENDPOINT
 @app.route('/adduser', methods=['POST'])
