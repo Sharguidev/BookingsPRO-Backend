@@ -28,7 +28,8 @@ cd BookingsPRO-Backend
 
 ```
 
-Install dependencies with pipenv
+Install dependencies with pipenv 
+
 
 ```sh
 pipenv install
@@ -38,8 +39,9 @@ psql -U root -c 'CREATE DATABASE example;'
 
 > Note: Codespaces users can connect to psql by typing: `psql -h localhost -U gitpod example`
 
-Create the migrations file:
 
+
+Create the migrations file:
 ```sh
 pipenv run init
 ```
@@ -75,7 +77,6 @@ There is an example API working with an example database. All your application c
 ## ▶️ Running the App
 
 Start the backend with:
-
 ```sh
 pipenv run start
 ```
@@ -89,7 +90,6 @@ $ pipenv run diagram
 ```
 
 ## ☁️ Deployment
-
 This boilerplate it's 100% read to deploy with Render.com and Herkou in a matter of minutes. Please read the [official documentation about it](https://start.4geeksacademy.com/deploy).
 
 ##License Repo
