@@ -31,7 +31,7 @@ cd BookingsPRO-Backend
 Install dependencies with pipenv 
 
 ```sh
-pipenv install;
+pipenv install
 psql -U root -c 'CREATE DATABASE example;'
 
 ```
@@ -41,7 +41,7 @@ psql -U root -c 'CREATE DATABASE example;'
 
 Create the migrations file:
 ```sh
-pipenv run init;
+pipenv run init
 ```
 ## Migrations commands
 
