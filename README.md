@@ -30,6 +30,7 @@ cd BookingsPRO-Backend
 
 Install dependencies with pipenv 
 
+
 ```sh
 pipenv install
 psql -U root -c 'CREATE DATABASE example;'
@@ -39,10 +40,12 @@ psql -U root -c 'CREATE DATABASE example;'
 > Note: Codespaces users can connect to psql by typing: `psql -h localhost -U gitpod example`
 
 
+
 Create the migrations file:
 ```sh
 pipenv run init
 ```
+
 ## Migrations commands
 
 ```sh
@@ -74,7 +77,6 @@ There is an example API working with an example database. All your application c
 ## ▶️ Running the App
 
 Start the backend with:
-
 ```sh
 pipenv run start
 ```
