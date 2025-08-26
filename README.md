@@ -1,4 +1,4 @@
-## BookingsPRO Backend
+# BookingsPRO Backend
 
 A Flask + PostgreSQL backend for a multi-tenant booking platform.
 It provides REST APIs to manage tenants, users, services, availability, bookings, and more.
@@ -43,7 +43,7 @@ Create the migrations file:
 ```sh
 pipenv run init;
 ```
-# Migrations commands
+## Migrations commands
 
 ```sh
 pipenv run migrate
@@ -56,13 +56,13 @@ pipenv run upgrade
 pipenv shell
 ```
 
-# Configure your enviroment variables
+## Configure your enviroment variables
 
 ```sh
 cp .env.example .env
 ```
 
-# How to Start coding
+## How to Start coding
 
 There is an example API working with an example database. All your application code should be written inside the `./src/` folder.
 
