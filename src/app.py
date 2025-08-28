@@ -32,8 +32,6 @@ CORS(app)
 setup_admin(app)
 
 
-
-
 # Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
@@ -108,7 +106,9 @@ def register_tenant_owner():
     db.session.add(owner_user)
     db.session.commit()
 
-    return jsonify({"msg": "User created successfully"}), 200
+    acces_token = create_access_token(identity=user_data['email'])
+
+    return jsonify({"msg": "User created successfully", "access_token": acces_token}), 200
 
 #Get all tenants
 @app.route('/tenants', methods=['GET'])
@@ -160,7 +160,19 @@ def delete_tenant(id):
 
 #INSERT USER ENDPOINT
 @app.route('/adduser', methods=['POST'])
+@jwt_required()
 def add_user():
+    #Get the current user
+
+    current_user_email = get_jwt_identity()
+    current_user = User.query.filter_by(email=current_user_email).first()
+    
+    if not current_user:
+        return jsonify ({"msg": "User not found"}), 404
+    
+    if current_user.role != 'Owner':
+        return jsonify ({"msg": "You are not authorized to add users"}), 403
+
     # First we get the payload json
     data = request.get_json()
     user = data.get('user')
@@ -188,7 +200,8 @@ def add_user():
         cedula = user['cedula'],
         address = user['address'],
         phone = user['phone'],
-        is_active = user.get('is_active', True)
+        is_active = user.get('is_active', True),
+        tenant_id = current_user.tenant_id
     )
 
     #agregar el usuario a la base de datos
@@ -196,7 +209,55 @@ def add_user():
     db.session.commit()
 
     return jsonify({"msg": "User created successfully"}), 200
+
+#GET all users
+@app.route('/users', methods=['GET'])
+def get_all_users():
+    users = User.query.all()
+    return jsonify([user.serialize() for user in users]), 200
+
+
+#get user by id
+@app.route('/user/<int:id>', methods=['GET'])
+def get_user_by_id(id):
+    user = User.query.get(id)
+    if not user:
+        return jsonify({"msg" : "User not found"}), 404
+    return jsonify(user.serialize()), 200
+
+#Edit user
+@app.route('/user/<int:id>', methods=['PUT'])
+def edit_user(id):
+    data = request.get_json()
+    user = User.query.get(id)
+    if not user:
+        return jsonify ({"msg" : "User not found"}), 404
+    user.name = data.get('name', user.name)
+    user.email = data.get('email', user.email)
+    user.role = data.get('role', user.role)
+    user.cedula = data.get('cedula', user.cedula)
+    user.address = data.get('address', user.address)
+    user.phone = data.get('phone', user.phone)
+    user.is_active = data.get('is_active', user.is_active)
+    db.session.commit()
+    return jsonify(user.serialize()), 200
+
+#Delete user
+
+@app.route('/user/<int:id>', methods=['DELETE'])   
+def delete_user(id):
+    user = User.query.get(id)
+
+    if not user:
+        return jsonify({"msg" : "User not found"}), 404
+
+    if user.role == "Staff":
+        return jsonify({"msg": "You are not authorized to delete users"}), 403
     
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({"msg": "User deleted successfully"}), 200
+
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
