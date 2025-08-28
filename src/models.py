@@ -36,7 +36,7 @@ class Tenant(db.Model):
     dni: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     subdomain: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     create_at: Mapped[datetime ] = mapped_column(DateTime, default=datetime.utcnow)
-    plan_id: Mapped[int] = mapped_column(ForeignKey(Plan.id), nullable=False, default=2)
+    plan_id: Mapped[int] = mapped_column(ForeignKey(Plan.id), nullable=False, default=1)
     users: Mapped[list["User"]] = relationship(back_populates="tenant")
     services: Mapped[list["Service"]] = relationship(back_populates="tenant")
     staff: Mapped[list["Staff"]] = relationship(back_populates="tenant")
@@ -64,6 +64,9 @@ class User(db.Model):
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(nullable=False)
     role: Mapped[str] = mapped_column(String(50), nullable=False)
+    cedula: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    address: Mapped[str] = mapped_column(String(50), nullable=False)
+    phone: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
     is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False)
 
     tenant: Mapped["Tenant"] = relationship(back_populates="users")
@@ -74,6 +77,9 @@ class User(db.Model):
             "name": self.name,
             "email": self.email,
             "role": self.role,
+            "cedula": self.cedula,
+            "address": self.address,
+            "phone": self.phone,
             "is_active": self.is_active    
             # do not serialize the password, its a security breach
         }

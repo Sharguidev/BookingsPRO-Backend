@@ -10,10 +10,14 @@ from utils import APIException, generate_sitemap
 from admin import setup_admin
 from models import db, User, Tenant
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, JWTManager
 #from models import Person
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
+
+app.config["JWT_SECRET_KEY"] = "2313231@!@##$@#%@!!@$!nfgbihgns"
+jwt = JWTManager(app)
 
 db_url = os.getenv("DATABASE_URL")
 if db_url is not None:
@@ -26,6 +30,9 @@ MIGRATE = Migrate(app, db)
 db.init_app(app)
 CORS(app)
 setup_admin(app)
+
+
+
 
 # Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
@@ -59,7 +66,7 @@ def register_tenant_owner():
     if not all(tenant_data.get(key) for key in ("name", "dni", "subdomain")):
         return jsonify({"msg": "Missing data"}), 400
 
-    if not all(user_data.get(key) for key in ("name", "email", "password", "role", "is_active")):
+    if not all(user_data.get(key) for key in ("name", "email", "password", "role", "cedula", "address", "phone", "is_active")):
         return jsonify({"msg": "Missing data"}), 400
 
     #verificar si el usuario existe
@@ -89,6 +96,9 @@ def register_tenant_owner():
         email = user_data['email'],
         password = pass_hashed,
         role = user_data.get('role', 'Owner'),
+        cedula = user_data['cedula'],   
+        address = user_data['address'],
+        phone = user_data['phone'],
         tenant_id = new_tenant.id,
         is_active = user_data.get('is_active', True)
     )
@@ -158,7 +168,7 @@ def add_user():
     if not user:
         return jsonify({"msg": "Missing data"}), 400
 
-    required_fields = ["name", "email", "password"]
+    required_fields = ["name", "email", "password", "role", "cedula", "address", "phone", "is_active"]
     if not all(user.get(field) for field in required_fields):
         return jsonify({"msg": "Missing required data " + str(required_fields)}), 400
 
@@ -175,6 +185,9 @@ def add_user():
         email = user['email'],
         password = pass_hashed,
         role = user.get('role', 'Staff'),
+        cedula = user['cedula'],
+        address = user['address'],
+        phone = user['phone'],
         is_active = user.get('is_active', True)
     )
 
