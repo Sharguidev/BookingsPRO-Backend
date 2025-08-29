@@ -88,7 +88,7 @@ class Service(db.Model):
     __tablename__="services"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    tenant_id: Mapped[int] = mapped_column(ForeignKey(Tenant.id), nullable=False, default=5)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey(Tenant.id), nullable=False)
     name: Mapped[str] = mapped_column(String(100))
     description: Mapped[str] = mapped_column(Text)
     duration_minutes: Mapped[int]
@@ -101,12 +101,16 @@ class Service(db.Model):
     bookings: Mapped[list["Booking"]] = relationship(back_populates="service")
 
     def serialize(self):
-        return{
-                "id":self.id,
-                "name": self.name, 
-                "price_cents": self.price_cents, 
-                "currency": self.currency
-             }
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "duration_minutes": self.duration_minutes,
+            "price_cents": self.price_cents,
+            "currency": self.currency,
+            "active": self.active,
+            "tenant_id": self.tenant_id
+        }
 
 class Staff(db.Model):
     __tablename__="staff"
