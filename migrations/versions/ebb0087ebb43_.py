@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 2b8531986562
+Revision ID: ebb0087ebb43
 Revises: 
-Create Date: 2025-08-28 02:49:30.721125
+Create Date: 2025-08-30 05:37:08.015035
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '2b8531986562'
+revision = 'ebb0087ebb43'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -74,11 +74,19 @@ def upgrade():
     sa.Column('tenant_id', sa.Integer(), nullable=False),
     sa.Column('dni', sa.String(length=120), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=False),
+    sa.Column('email', sa.String(length=120), nullable=True),
+    sa.Column('phone_number', sa.String(length=20), nullable=True),
     sa.Column('medic_license', sa.String(length=120), nullable=True),
+    sa.Column('specialty', sa.String(length=120), nullable=True),
+    sa.Column('role', sa.String(length=50), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.Column('hire_date', sa.DateTime(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.ForeignKeyConstraint(['tenant_id'], ['tenant.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('dni'),
+    sa.UniqueConstraint('email'),
     sa.UniqueConstraint('medic_license')
     )
     op.create_table('user',
@@ -91,7 +99,6 @@ def upgrade():
     sa.Column('cedula', sa.String(length=120), nullable=False),
     sa.Column('address', sa.String(length=50), nullable=False),
     sa.Column('phone', sa.String(length=50), nullable=False),
-    sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.ForeignKeyConstraint(['tenant_id'], ['tenant.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('cedula'),
@@ -108,7 +115,6 @@ def upgrade():
     sa.Column('end_time', sa.DateTime(), nullable=False),
     sa.Column('status', sa.String(length=50), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.ForeignKeyConstraint(['customer_id'], ['customers.id'], ),
     sa.ForeignKeyConstraint(['service_id'], ['services.id'], ),
     sa.ForeignKeyConstraint(['staff_id'], ['staff.id'], ),
@@ -151,7 +157,6 @@ def upgrade():
     sa.Column('status', sa.String(length=50), nullable=False),
     sa.Column('stripe_payment_id', sa.String(length=120), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.ForeignKeyConstraint(['booking_id'], ['bookings.id'], ),
     sa.PrimaryKeyConstraint('id')
     )

@@ -37,14 +37,17 @@ class Tenant(db.Model):
     subdomain: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     create_at: Mapped[datetime ] = mapped_column(DateTime, default=datetime.utcnow)
     plan_id: Mapped[int] = mapped_column(ForeignKey(Plan.id), nullable=False, default=1)
+    
+    
+    #Relationships
     users: Mapped[list["User"]] = relationship(back_populates="tenant")
     services: Mapped[list["Service"]] = relationship(back_populates="tenant")
     staff: Mapped[list["Staff"]] = relationship(back_populates="tenant")
     customers: Mapped[list["Customer"]] = relationship(back_populates="tenant")
     bookings: Mapped[list["Booking"]] = relationship(back_populates="tenant")
     email_logs: Mapped[list["EmailLog"]] = relationship(back_populates="tenant")
-
     plan: Mapped["Plan"] = relationship(back_populates="tenants")
+    
 
     def serialize(self):
         return {
@@ -67,7 +70,7 @@ class User(db.Model):
     cedula: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     address: Mapped[str] = mapped_column(String(50), nullable=False)
     phone: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
-    is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False)
+    
 
     tenant: Mapped["Tenant"] = relationship(back_populates="users")
 
@@ -79,8 +82,7 @@ class User(db.Model):
             "role": self.role,
             "cedula": self.cedula,
             "address": self.address,
-            "phone": self.phone,
-            "is_active": self.is_active    
+            "phone": self.phone,   
             # do not serialize the password, its a security breach
         }
 
@@ -97,6 +99,7 @@ class Service(db.Model):
     active: Mapped[bool] = mapped_column(Boolean, default= True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+    #Relationships
     tenant: Mapped["Tenant"] = relationship(back_populates="services")
     bookings: Mapped[list["Booking"]] = relationship(back_populates="service")
 
@@ -112,15 +115,26 @@ class Service(db.Model):
             "tenant_id": self.tenant_id
         }
 
+
 class Staff(db.Model):
-    __tablename__="staff"
+    __tablename__ = "staff"
+
     id: Mapped[int] = mapped_column(primary_key=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey(Tenant.id), nullable=False)
-    dni: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
-    name: Mapped[str] = mapped_column(String(100))
-    medic_license: Mapped[str] = mapped_column(String(120), unique=True, nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False)
 
+    dni: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=True)
+    phone_number: Mapped[str] = mapped_column(String(20), nullable=True, unique=True)
+    medic_license: Mapped[str] = mapped_column(String(120), unique=True, nullable=True)
+    specialty: Mapped[str] = mapped_column(String(120), nullable=True)
+    role: Mapped[str] = mapped_column(String(50), nullable=False)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    hire_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    #Relationships
     tenant: Mapped["Tenant"] = relationship(back_populates="staff")
     working_hours: Mapped[list["StaffWorkingHours"]] = relationship(back_populates="staff")
     time_off: Mapped[list["StaffTimeOff"]] = relationship(back_populates="staff")
@@ -129,11 +143,17 @@ class Staff(db.Model):
     def serialize(self):
         return {
             "id": self.id,
-            "name": self.name,
             "dni": self.dni,
+            "name": self.name,
+            "email": self.email,
+            "phone_number": self.phone_number,
             "medic_license": self.medic_license,
-                
-            # do not serialize the password, its a security breach
+            "specialty": self.specialty,
+            "role": self.role,
+            "is_active": self.is_active,
+            "hire_date": self.hire_date.isoformat() if self.hire_date else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
 
 
@@ -210,7 +230,7 @@ class Booking(db.Model):
     end_time: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False)
+    
 
     tenant: Mapped["Tenant"] = relationship(back_populates="bookings")
     customer: Mapped["Customer"] = relationship(back_populates="bookings")
@@ -230,7 +250,6 @@ class Booking(db.Model):
             "end_time": self.end_time,
             "status": self.status,
             "created_at": self.created_at,
-            "is_active": self.is_active
         }
 class Payment(db.Model):
     __tablename__="payments"
@@ -241,7 +260,6 @@ class Payment(db.Model):
     status: Mapped[str] = mapped_column(String(50), nullable=False)
     stripe_payment_id: Mapped[str] = mapped_column(String(120), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False)
 
     booking: Mapped["Booking"] = relationship(back_populates="payments")
 
@@ -254,7 +272,6 @@ class Payment(db.Model):
             "status": self.status,
             "stripe_payment_id": self.stripe_payment_id,
             "created_at": self.created_at,
-            "is_active": self.is_active
         }
 
 class EmailLog(db.Model):

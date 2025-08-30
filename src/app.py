@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Tenant, Service
+from models import db, User, Tenant, Service, Staff, StaffTimeOff, StaffWorkingHours, Plan, Payment, Booking
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, JWTManager
 #from models import Person
@@ -89,7 +89,7 @@ def register_tenant_owner():
     if not all(tenant_data.get(key) for key in ("name", "dni", "subdomain")):
         return jsonify({"msg": "Missing data"}), 400
 
-    if not all(user_data.get(key) for key in ("name", "email", "password", "role", "cedula", "address", "phone", "is_active")):
+    if not all(user_data.get(key) for key in ("name", "email", "password", "role", "cedula", "address", "phone")):
         return jsonify({"msg": "Missing data"}), 400
 
     #verificar si el usuario existe
@@ -123,7 +123,6 @@ def register_tenant_owner():
         address = user_data['address'],
         phone = user_data['phone'],
         tenant_id = new_tenant.id,
-        is_active = user_data.get('is_active', True)
     )
 
 
@@ -205,7 +204,7 @@ def add_user():
     if not user:
         return jsonify({"msg": "Missing data"}), 400
 
-    required_fields = ["name", "email", "password", "role", "cedula", "address", "phone", "is_active"]
+    required_fields = ["name", "email", "password", "role", "cedula", "address", "phone"]
     if not all(user.get(field) for field in required_fields):
         return jsonify({"msg": "Missing required data " + str(required_fields)}), 400
 
@@ -225,7 +224,6 @@ def add_user():
         cedula = user['cedula'],
         address = user['address'],
         phone = user['phone'],
-        is_active = user.get('is_active', True),
         tenant_id = current_user.tenant_id
     )
 
@@ -286,7 +284,6 @@ def edit_user(id):
     user.cedula = data.get('cedula', user.cedula)
     user.address = data.get('address', user.address)
     user.phone = data.get('phone', user.phone)
-    user.is_active = data.get('is_active', user.is_active)
     db.session.commit()
     return jsonify(user.serialize()), 200
 
@@ -334,7 +331,7 @@ def create_service():
             
         service_data = data.get('services')
 
-        required_fields = ("name", "description", "duration_minutes", "price_cents", "currency", "active")
+        required_fields = ("name", "description", "duration_minutes", "price_cents", "currency")
         missing_fields = [field for field in required_fields if field not in service_data or service_data[field] is None]
 
         if missing_fields:
@@ -350,7 +347,6 @@ def create_service():
             duration_minutes=service_data['duration_minutes'],
             price_cents=service_data['price_cents'],
             currency=service_data['currency'],
-            active=service_data['active'],
             tenant_id=current_user.tenant_id
         )
 
@@ -411,6 +407,7 @@ def edit_service(id):
         return jsonify({"msg": "User not found"}), 404
     
     service = Service.query.get(id)
+
     if not service or service.tenant_id != current_user.tenant_id:
         return jsonify({"msg": "Service not found"}), 404
 
@@ -427,11 +424,155 @@ def edit_service(id):
         service.price_cents = data['price_cents']
     if 'currency' in data:
         service.currency = data['currency']
-    if 'active' in data:
-        service.active = data['active']
+    
     
     db.session.commit()
     return jsonify(service.serialize()), 200
+
+
+#Delete Service
+@app.route('/service/<int:id>', methods=['DELETE'])
+@jwt_required()
+def delete_service(id):
+    current_user_email = get_jwt_identity()
+    current_user = User.query.filter_by(email=current_user_email).first()
+    
+    if not current_user:
+        return jsonify({"msg": "User not found"}), 404
+    
+    service = Service.query.get(id)
+    
+    if not service or service.tenant_id != current_user.tenant_id:
+        return jsonify({"msg": "Service not found"}), 404
+
+    db.session.delete(service)
+    db.session.commit()
+    return jsonify({"msg": "Service deleted successfully"}), 200
+
+#STAFF CRUD
+
+#create Staff
+@app.route('/staff', methods=['POST'])
+@jwt_required()
+def create_staff():
+    user_logged_email = get_jwt_identity()
+    user_logged = User.query.filter_by(email=user_logged_email).first()
+
+
+    if not user_logged:
+        return jsonify({"msg": "User not found"}), 404
+
+    data = request.get_json()
+
+    if not data or 'staff' not in data:
+        return jsonify({"msg": "Missing data"}), 400
+        
+    staff_data = data.get('staff')
+
+    required_fields = ("dni", "name", "email", "phone_number", "specialty", "role", "is_active", "hire_date")
+    missing_fields = [field for field in required_fields if field not in staff_data or staff_data[field] is None]
+    
+    if missing_fields:
+        return jsonify ({
+            "msg":"You are forgetting some fields",
+            "missing_fields": missing_fields,
+            "required_fields": required_fields
+        }), 400
+
+    if Staff.query.filter_by(dni=staff_data['dni']).first():
+        return jsonify({"msg": "Staff already exists"}), 400
+    
+    new_staff = Staff(
+        dni=staff_data['dni'],
+        name = staff_data['name'],
+        email = staff_data['email'],
+        phone_number = staff_data['phone_number'],
+        specialty = staff_data['specialty'],
+        role = staff_data['role'],
+        is_active = staff_data['is_active'],
+        hire_date = staff_data['hire_date'],
+        medic_license = staff_data.get('medic_license'),
+        tenant_id = user_logged.tenant_id
+    )
+    
+    db.session.add(new_staff)
+    db.session.commit()
+
+    return jsonify({
+        "msg": "Staff created successfully",
+        "data": new_staff.serialize()
+        }), 201
+    
+
+#get Staff
+@app.route('/staff', methods=['GET'])
+@jwt_required()
+def get_all_staff():
+    user_logged_email = get_jwt_identity()
+    user_logged = User.query.filter_by(email=user_logged_email).first()
+
+    if not user_logged:
+        return jsonify({"msg": "User not found"}), 404
+
+    staff = Staff.query.filter_by(tenant_id=user_logged.tenant_id).all();
+    return jsonify([staff.serialize() for staff in staff]), 200
+
+#get Staff by ID
+@app.route('/staff/<int:id>', methods=['GET'])
+@jwt_required()
+def get_staff_by_id(id):
+    user_logged_email = get_jwt_identity()
+    user_logged = User.query.filter_by(email=user_logged_email).first()
+
+    if not user_logged:
+        return jsonify({"msg": "User not found"}), 404
+
+    staff = Staff.query.get(id)
+    if not staff or staff.tenant_id != user_logged.tenant_id:
+        return jsonify({"msg": "Staff not found"}), 404
+
+    return jsonify(staff.serialize()), 200
+
+
+#update Staff 
+@app.route('/staff/<int:id>', methods=['PUT'])
+@jwt_required()
+def update_staff(id):
+    user_logged_email = get_jwt_identity()
+    user_logged = User.query.filter_by(email=user_logged_email).first()
+
+    if not user_logged:
+        return jsonify({"msg": "User not found"}), 404
+
+    staff = Staff.query.get(id)
+    if not staff or staff.tenant_id != user_logged.tenant_id:
+        return jsonify({"msg": "Staff not found"}), 404
+
+    data = request.get_json()
+    
+    # Update only the fields that are provided in the request
+    if 'name' in data:
+        staff.name = data['name']
+    if 'email' in data:
+        staff.email = data['email']
+    if 'phone_number' in data:
+        staff.phone_number = data['phone_number']
+    if 'specialty' in data:
+        staff.specialty = data['specialty']
+    if 'role' in data:
+        staff.role = data['role']
+    if 'is_active' in data:
+        staff.is_active = data['is_active']
+    if 'hire_date' in data:
+        staff.hire_date = data['hire_date']
+    if 'medic_license' in data:
+        staff.medic_license = data.get('medic_license')
+    
+    db.session.commit()
+    return jsonify(staff.serialize()), 200
+
+#Delete Staff
+
 
 
 # this only runs if `$ python src/app.py` is executed
