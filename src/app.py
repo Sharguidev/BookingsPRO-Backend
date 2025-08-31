@@ -164,21 +164,76 @@ def update_tenant(id):
     return jsonify(tenant.serialize()), 200
 
 #Delete tenant/ modify tomorrow 
-@app.route('/tenants-user/<int:id>', methods=['DELETE'])
+@app.route('/tenants/<int:id>', methods=['DELETE'])
 def delete_tenant(id):
     tenant = Tenant.query.get(id)
     user = User.query.filter_by(tenant_id=id, role='Owner').first()
+    user_staff = User.query.filter_by(tenant_id=id, role='Staff').all()
+    service = Service.query.filter_by(tenant_id=id).all()
+    staff = Staff.query.filter_by(tenant_id=id).all()
+    customer = Customer.query.filter_by(tenant_id=id).all()
+    booking = Booking.query.filter_by(tenant_id=id).all()
+    payment = Payment.query.filter_by(tenant_id=id).all()
+    email_logs = EmailLog.query.filter_by(tenant_id=id).all()
+    staff_working_hours = StaffWorkingHours.query.filter_by(tenant_id=id).all()
+    staff_time_off = StaffTimeOff.query.filter_by(tenant_id=id).all()
+    plan = Plan.query.filter_by(tenant_id=id).all()
+
+    
+
+
     if not tenant:
         return jsonify({"msg":"Tenant not found"}), 404
     if not user:
         return jsonify({"msg":"Owner not found for this tenant"}), 404
+    if not user_staff:
+        return jsonify({"msg " : "Staff not found for this tenant"}), 404
+    if not service:
+        return jsonify({"msg " : "Service not found for this tenant"}), 404
+    if not staff:
+        return jsonify({"msg " : "Staff not found for this tenant"}), 404
+    if not customer:
+        return jsonify({"msg " : "Customer not found for this tenant"}), 404
+    if not booking:
+        return jsonify({"msg " : "Booking not found for this tenant"}), 404
+    if not payment:
+        return jsonify({"msg " : "Payment not found for this tenant"}), 404
+    if not email_logs:
+        return jsonify({"msg " : "Email log not found for this tenant"}), 404
+    if not staff_working_hours:
+        return jsonify({"msg " : "Staff working hours not found for this tenant"}), 404
+    if not staff_time_off:
+        return jsonify({"msg " : "Staff time off not found for this tenant"}), 404
+    if not plan:
+        return jsonify({"msg " : "Plan not found for this tenant"}), 404
+
     db.session.delete(tenant)
     db.session.delete(user)
+    db.session.delete(user_staff)
+    db.session.delete(service)
+    db.session.delete(staff)
+    db.session.delete(customer)
+    db.session.delete(booking)
+    db.session.delete(payment)
+    db.session.delete(email_logs)
+    db.session.delete(staff_working_hours)
+    db.session.delete(staff_time_off)
+    db.session.delete(plan)
     db.session.commit()
+
     return jsonify({
         "msg":"Tenant and owner deleted successfully",
         "Deleted Tenant": tenant.id,
-        "Deleted Owner": user.id
+        "Deleted Owner": user.id,
+        "Deleted Staff": user_staff.id,
+        "Deleted Service": service.id,
+        "Deleted Customer": customer.id,
+        "Deleted Booking": booking.id,
+        "Deleted Payment": payment.id,
+        "Deleted Email Log": email_logs.id,
+        "Deleted Staff Working Hours": staff_working_hours.id,
+        "Deleted Staff Time Off": staff_time_off.id,
+        "Deleted Plan": plan.id
         }), 200
     
 
@@ -407,32 +462,38 @@ def edit_service(id):
         return jsonify({"msg": "User not found"}), 404
     
     service = Service.query.get(id)
-
     if not service or service.tenant_id != current_user.tenant_id:
         return jsonify({"msg": "Service not found"}), 404
 
-    data = request.get_json()
-    
-    # Update only the fields that are provided in the request
-    if 'name' in data:
-        service.name = data['name']
-    if 'description' in data:
-        service.description = data['description']
-    if 'duration_minutes' in data:
-        service.duration_minutes = data['duration_minutes']
-    if 'price_cents' in data:
-        service.price_cents = data['price_cents']
-    if 'currency' in data:
-        service.currency = data['currency']
-    
-    
-    db.session.commit()
-    return jsonify(service.serialize()), 200
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"msg": "Missing data"}), 400
+        
+        # Update only the fields that are provided in the request
+        if 'name' in data:
+            service.name = data['name']
+        if 'description' in data:
+            service.description = data['description']
+        if 'duration_minutes' in data:
+            service.duration_minutes = data['duration_minutes']
+        if 'price_cents' in data:
+            service.price_cents = data['price_cents']
+        if 'currency' in data:
+            service.currency = data['currency']
+        
+        
+        db.session.commit()
+        return jsonify(service.serialize()), 200
 
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"msg": "Error updating service", "error": str(e)}), 500
 
 #Delete Service
 @app.route('/service/<int:id>', methods=['DELETE'])
 @jwt_required()
+
 def delete_service(id):
     current_user_email = get_jwt_identity()
     current_user = User.query.filter_by(email=current_user_email).first()
@@ -443,11 +504,21 @@ def delete_service(id):
     service = Service.query.get(id)
     
     if not service or service.tenant_id != current_user.tenant_id:
+    
         return jsonify({"msg": "Service not found"}), 404
 
-    db.session.delete(service)
-    db.session.commit()
-    return jsonify({"msg": "Service deleted successfully"}), 200
+    try: 
+        bookings = Booking.query.filter_by(service_id=id, tenant_id=current_user.tenant_id).all()
+        for booking in bookings: 
+            db.session.delete(booking)
+
+        db.session.delete(service)
+        db.session.commit()
+        return jsonify({"msg": "Service deleted successfully"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"msg": "Error deleting service", "error": str(e)}), 500
 
 #STAFF CRUD
 
