@@ -11,6 +11,7 @@ from admin import setup_admin
 from models import db, User, Tenant, Service, Staff, StaffTimeOff, StaffWorkingHours, Plan, Payment, Booking
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, JWTManager
+from datetime import datetime
 #from models import Person
 
 app = Flask(__name__)
@@ -558,12 +559,14 @@ def create_staff():
         name = staff_data['name'],
         email = staff_data['email'],
         phone_number = staff_data['phone_number'],
+        medic_license = staff_data.get('medic_license'),
         specialty = staff_data['specialty'],
         role = staff_data['role'],
         is_active = staff_data['is_active'],
         hire_date = staff_data['hire_date'],
-        medic_license = staff_data.get('medic_license'),
-        tenant_id = user_logged.tenant_id
+        tenant_id = user_logged.tenant_id,
+        created_at = datetime.utcnow(),
+        updated_at = datetime.utcnow()
     )
     
     db.session.add(new_staff)
@@ -634,17 +637,132 @@ def update_staff(id):
         staff.role = data['role']
     if 'is_active' in data:
         staff.is_active = data['is_active']
-    if 'hire_date' in data:
-        staff.hire_date = data['hire_date']
     if 'medic_license' in data:
         staff.medic_license = data.get('medic_license')
+
+    from datetime import datetime
+    staff.update_at = datetime.utcnow()
     
     db.session.commit()
     return jsonify(staff.serialize()), 200
 
 #Delete Staff
+@app.route('/staff/<int:id>', methods=['DELETE'])
+@jwt_required()
+def delete_staff(id):
+    user_logged_email = get_jwt_identity()
+    user_logged = User.query.filter_by(email=user_logged_email).first()
+
+    if not user_logged:
+        return jsonify({"msg": "User not found"}), 404
+
+    staff = Staff.query.get(id)
+    if not staff or staff.tenant_id != user_logged.tenant_id:
+        return jsonify({"msg": "Staff not found"}), 404
+
+    try:
+        bookings = Booking.query.filter_by(staff_id=id, tenant_id= user_logged.tenant_id).all()
+        staff_working_hours = StaffWorkingHours.query.filter_by(staff_id=staff.id, tenant_id=user_logged.tenant_id).all()
+        staff_time_off = StaffTimeOff.query.filter_by(staff_id=staff.id, tenant_id=user_logged.tenant_id).all()
+        
+        for booking in bookings: 
+            db.session.delete(booking)
+
+        for staff_time_off in staff_time_off:
+            db.session.delete(staff_time_off)
+            
+        for staff_working_hour in staff_working_hours:
+            db.session.delete(staff_working_hours)
+        
+        db.session.delete(staff)
+        db.session.commit()
+        return jsonify({"msg": "Staff deleted successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"msg": "Error deleting staff", "error": str(e)}), 500
+
+#create customer & booking
+
+@app.route('/booking', methods=['POST'])
+def create_booking_customer():
+
+   #request the tenant Id
+   subdomain = request.host.split('.')[0]
+   tenant = Tenant.query.filter_by(subdomain=subdomain).first() 
+
+   if not tenant:
+    return jsonify ({"msg": "Tenant not found"}), 404
+
+   tenant_id = tenant.id 
+
+   data = request.get_json()
+   
+   service_id = data.get("service_id")
+   staff_id = data.get("staff_id")
+   start_time = data.get("start_time")
+   end_time = data.get("end_time")
+   payment_method = data.get("payment_method")
+
+   # Validate the service belong to the tenant
+
+   service = Service.query.filter_by(id=service_id, tenant_id=tenant_id).first()
+   if not service:
+    return jsonify ({
+        "msg": "Service not found"
+    }), 404 
+
+    #Validate Staff belong to the tenant
+    staff = Staff.query.filter_by(id=staff_id, tenant_id=tenant_id).first()
+    if not staff:
+      return jsonify ({
+        "msg": "Staff not found"
+    }), 404  
+    
+
+    #customer Data
+    customer_data = data.get("customer")
+    if not customer_data:
+      return jsonify ({
+        "msg": "Customer data is required"
+    }), 400
 
 
+    #filter if create or not
+    customer = Customer.query.filter_by(email=customer_data["email"], tenant_id=tenant_id).first()
+    if not customer:
+      customer = Customer(
+        email=customer_data["email"],
+        tenant_id=tenant_id,
+        name=customer_data["name"],
+        phone=customer_data["phone"],
+        dni=customer_data["dni"],
+        is_active=customer_data["is_active"],
+      )
+      db.session.add(customer)
+      db.session.flush()
+
+    #Booking status 
+
+    status = "pending_payment" if payment_method == "online" else "confirmed"
+      
+    booking = Booking(
+        tenant_id=tenant_id,
+        customer_id=customer.id,
+        service_id=service_id,
+        staff_id=staff_id,
+        start_time=start_time,
+        end_time=end_time,
+        status=status,
+        created_at=datetime.utcnow(),
+    )
+    db.session.add(booking)
+    db.session.commit()
+    
+
+    return jsonify ({
+        "msg": "Booking created successfully",
+        "data": booking.serialize()
+    }), 201
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
