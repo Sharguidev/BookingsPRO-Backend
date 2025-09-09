@@ -142,13 +142,36 @@ def get_tenant():
     return jsonify([tenant.serialize() for tenant in tenants]), 200
 
 
-#get tenant by id
-@app.route('/tenants/<int:id>', methods=['GET'])
-def get_tenant_by_id(id):
-    tenant = Tenant.query.get(id)
-    if not tenant:
-        return jsonify({"msg":"Tenant not found"}), 404
-    return jsonify(tenant.serialize()), 200
+#get tenant by province or name tenant or either search services
+@app.route('/public/search', methods=['GET'])
+def get_tenant_by_id():
+    
+   query = request.args.get('query', '').strip()
+
+   if not query:
+    return jsonify ({
+        "error": "Query parameter is required",
+        "usage": "GET /public/search?query=<term>"
+    }), 400
+   #1 Priority 1 search a Tenant by name  
+   tenant_results = Tenant.query.filter(Tenant.name.ilike(f'%{query}%')).all() 
+
+   if tenant_results:
+    return jsonify({
+        "type": "tenant",
+        "results": [
+            {
+                "tenant_id": tenant.tenant_id,
+                    "name": tenant.name,
+                    "description": tenant.description,
+                    "province": tenant.province,
+                    "subdomain": tenant.subdomain,
+                    "country": tenant.country
+            }
+
+            for tenant in tenant_results
+        ]
+    }), 200
     
 
 #Update tenant

@@ -30,11 +30,13 @@ class Plan(db.Model):
         }
 
 class Tenant(db.Model):
-    __tablename__: "tenants"
+    __tablename__ = "tenants"
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     name: Mapped[str] = mapped_column(String(120),  nullable=False)
     dni: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     subdomain: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    country: Mapped[str] = mapped_column(String(120), nullable=False)
+    province: Mapped[str] = mapped_column(String(120), nullable=False)
     create_at: Mapped[datetime ] = mapped_column(DateTime, default=datetime.utcnow)
     plan_id: Mapped[int] = mapped_column(ForeignKey(Plan.id), nullable=False, default=1)
     
@@ -55,6 +57,8 @@ class Tenant(db.Model):
             "name": self.name, 
             "dni": self.dni,
             "subdomain": self.subdomain, 
+            "country": self.country,
+            "province": self.province,
             "create_at": self.create_at,
             }
 
