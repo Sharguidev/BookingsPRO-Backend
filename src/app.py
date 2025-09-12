@@ -162,16 +162,71 @@ def get_tenant_by_id():
         "results": [
             {
                 "tenant_id": tenant.tenant_id,
-                    "name": tenant.name,
-                    "description": tenant.description,
-                    "province": tenant.province,
-                    "subdomain": tenant.subdomain,
-                    "country": tenant.country
+                "name": tenant.name,
+                "description": tenant.description,
+                "province": tenant.province,
+                "subdomain": tenant.subdomain,
+                "country": tenant.country
             }
 
             for tenant in tenant_results
         ]
     }), 200
+
+
+    #2 Priority 2 search a Service by name
+    
+    service_results = db.session.query(Service, Tenant).join(
+        Tenant, Service.tenant_id == Tenant.tenant_id
+    ).filter(
+        Service.name.ilike(f'%{query}%')
+    ).all()
+
+    if service_results:
+        return jsonify({
+            "type": "service",
+            "results": [
+                {
+                    "service_id": service.id,
+                    "name": service.name,
+                    "price": float(service.price) if service.price else None,
+                    "duration_minutes": service.duration_minutes,
+                    "tenant_name": tenant.name,
+                    "tenant_province": tenant.province,
+                    "tenant_country": tenant.country
+                }
+                for service, tenant in service_results
+            ]
+        }), 200
+
+    # priority 3 by province
+
+    province_result = Tenant.query.filter(
+        Tenant.province.ilike(f'%{query}%')
+    ).all()
+
+
+    if province_result:
+        return jsonify ({
+            "type": "tenant", 
+            "results": [
+                {
+                   "tenant_id": tenant.tenant_id,
+                   "name": tenant.name,
+                   "description": tenant.description,
+                   "province": tenant.province,
+                   "subdomain": tenant.subdomain,
+                   "country": tenant.country
+                }
+                for tenant, in province_results
+            ]
+        }), 200
+
+
+    return jsonify ({
+        "type": "none",
+        "message": "Not service or Tenant found"
+    }), 404    
     
 
 #Update tenant
