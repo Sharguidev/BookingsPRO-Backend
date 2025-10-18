@@ -1,6 +1,6 @@
 import os
 from flask_admin import Admin
-from models import db, User, Tenant, Service, Staff, Customer, Booking, Payment, EmailLog, StaffWorkingHours, StaffTimeOff, Plan
+from src.models import db, User, Tenant, Service, Staff, Customer, Booking, Payment, EmailLog, StaffWorkingHours, StaffTimeOff, Plan
 from flask_admin.contrib.sqla import ModelView
 
 def setup_admin(app):

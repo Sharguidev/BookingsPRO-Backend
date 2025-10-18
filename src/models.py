@@ -65,7 +65,7 @@ class Tenant(db.Model):
 
 class User(db.Model):
     __tablename__= "user"
-    tenant_id: Mapped[int] = mapped_column(ForeignKey(Tenant.id), nullable=False, default=6)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey(Tenant.id), nullable=False)
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100))
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
@@ -81,6 +81,7 @@ class User(db.Model):
     def serialize(self):
         return {
             "id": self.id,
+            "tenant_id": self.tenant_id,
             "name": self.name,
             "email": self.email,
             "role": self.role,
@@ -164,18 +165,32 @@ class Staff(db.Model):
 class StaffWorkingHours(db.Model):
     __tablename__="staff_working_hours"
     id: Mapped[int] = mapped_column(primary_key=True)
+
     staff_id: Mapped[int] = mapped_column(ForeignKey(Staff.id), nullable=False)
-    day_of_week: Mapped[int] = mapped_column(Integer, nullable=False)
+    work_day: Mapped[int] = mapped_column(Integer, nullable=False)
+    lunch_start: Mapped[time] = mapped_column(Time, nullable=False)
+    lunch_end: Mapped[time] = mapped_column(Time, nullable=False)
     start_time: Mapped[time] = mapped_column(Time, nullable=False)
     end_time: Mapped[time] = mapped_column(Time, nullable=False)
     
     staff: Mapped["Staff"] = relationship(back_populates="working_hours")   
 
     def serialize(self):
+        day_names = [
+            'Monday',
+            'Tuesday',
+            'Wednesday',
+            'Thursday',
+            'Friday',
+            'Saturday',
+            'Sunday'
+        ]
         return {
             "id": self.id,
             "staff_id": self.staff_id,
-            "day_of_week": self.day_of_week,
+            "work_day": day_names[self.work_days],
+            "lunch_start": self.lunch_start,
+            "lunch_end": self.lunch_end,
             "start_time": self.start_time,
             "end_time": self.end_time
         }
@@ -283,7 +298,7 @@ class EmailLog(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey(Tenant.id), nullable=False)
     booking_id: Mapped[int] = mapped_column(ForeignKey(Booking.id), nullable=False)
-    recepient_email: Mapped[str] = mapped_column(String(120), nullable=False)
+    recipient_email: Mapped[str] = mapped_column(String(120), nullable=False)
     subject: Mapped[str] = mapped_column(String(120), nullable=False)
     sent_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     
@@ -295,8 +310,7 @@ class EmailLog(db.Model):
             "id": self.id,
             "tenant_id": self.tenant_id,
             "booking_id": self.booking_id,
-            "recepient_email": self.recepient_email,
+            "recipient_email": self.recipient_email,
             "subject": self.subject,
             "sent_at": self.sent_at
         }
-    

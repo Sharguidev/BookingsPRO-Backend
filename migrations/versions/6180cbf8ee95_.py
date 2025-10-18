@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 7ca3807983ce
+Revision ID: 6180cbf8ee95
 Revises: 
-Create Date: 2025-09-09 20:25:19.666806
+Create Date: 2025-10-18 19:29:55.539969
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '7ca3807983ce'
+revision = '6180cbf8ee95'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -29,7 +29,7 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
     )
-    op.create_table('tenant',
+    op.create_table('tenants',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=120), nullable=False),
     sa.Column('dni', sa.String(length=120), nullable=False),
@@ -52,7 +52,7 @@ def upgrade():
     sa.Column('email', sa.String(length=120), nullable=False),
     sa.Column('phone', sa.String(length=120), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),
-    sa.ForeignKeyConstraint(['tenant_id'], ['tenant.id'], ),
+    sa.ForeignKeyConstraint(['tenant_id'], ['tenants.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('dni'),
     sa.UniqueConstraint('email'),
@@ -68,7 +68,7 @@ def upgrade():
     sa.Column('currency', sa.String(length=3), nullable=False),
     sa.Column('active', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['tenant_id'], ['tenant.id'], ),
+    sa.ForeignKeyConstraint(['tenant_id'], ['tenants.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('staff',
@@ -85,7 +85,7 @@ def upgrade():
     sa.Column('hire_date', sa.DateTime(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['tenant_id'], ['tenant.id'], ),
+    sa.ForeignKeyConstraint(['tenant_id'], ['tenants.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('dni'),
     sa.UniqueConstraint('email'),
@@ -102,7 +102,7 @@ def upgrade():
     sa.Column('cedula', sa.String(length=120), nullable=False),
     sa.Column('address', sa.String(length=50), nullable=False),
     sa.Column('phone', sa.String(length=50), nullable=False),
-    sa.ForeignKeyConstraint(['tenant_id'], ['tenant.id'], ),
+    sa.ForeignKeyConstraint(['tenant_id'], ['tenants.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('cedula'),
     sa.UniqueConstraint('email'),
@@ -121,7 +121,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['customer_id'], ['customers.id'], ),
     sa.ForeignKeyConstraint(['service_id'], ['services.id'], ),
     sa.ForeignKeyConstraint(['staff_id'], ['staff.id'], ),
-    sa.ForeignKeyConstraint(['tenant_id'], ['tenant.id'], ),
+    sa.ForeignKeyConstraint(['tenant_id'], ['tenants.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('staff_time_off',
@@ -135,7 +135,9 @@ def upgrade():
     op.create_table('staff_working_hours',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('staff_id', sa.Integer(), nullable=False),
-    sa.Column('day_of_week', sa.Integer(), nullable=False),
+    sa.Column('work_day', sa.Integer(), nullable=False),
+    sa.Column('lunch_start', sa.Time(), nullable=False),
+    sa.Column('lunch_end', sa.Time(), nullable=False),
     sa.Column('start_time', sa.Time(), nullable=False),
     sa.Column('end_time', sa.Time(), nullable=False),
     sa.ForeignKeyConstraint(['staff_id'], ['staff.id'], ),
@@ -145,11 +147,11 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('tenant_id', sa.Integer(), nullable=False),
     sa.Column('booking_id', sa.Integer(), nullable=False),
-    sa.Column('recepient_email', sa.String(length=120), nullable=False),
+    sa.Column('recipient_email', sa.String(length=120), nullable=False),
     sa.Column('subject', sa.String(length=120), nullable=False),
     sa.Column('sent_at', sa.DateTime(), nullable=False),
     sa.ForeignKeyConstraint(['booking_id'], ['bookings.id'], ),
-    sa.ForeignKeyConstraint(['tenant_id'], ['tenant.id'], ),
+    sa.ForeignKeyConstraint(['tenant_id'], ['tenants.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('payments',
@@ -177,6 +179,6 @@ def downgrade():
     op.drop_table('staff')
     op.drop_table('services')
     op.drop_table('customers')
-    op.drop_table('tenant')
+    op.drop_table('tenants')
     op.drop_table('plans')
     # ### end Alembic commands ###
