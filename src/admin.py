@@ -1,6 +1,6 @@
 import os
 from flask_admin import Admin
-from models import db, User, Tenant, Service, Staff, Customer, Booking, Payment, EmailLog, StaffWorkingHours, StaffTimeOff
+from models import db, User, Tenant, Service, Staff, Customer, Booking, Payment, EmailLog, StaffWorkingHours, StaffTimeOff, Plan
 from flask_admin.contrib.sqla import ModelView
 
 def setup_admin(app):
@@ -20,5 +20,6 @@ def setup_admin(app):
     admin.add_view(ModelView(EmailLog, db.session))
     admin.add_view(ModelView(StaffWorkingHours, db.session))
     admin.add_view(ModelView(StaffTimeOff, db.session))
+    admin.add_view(ModelView(Plan, db.session))
     # You can duplicate that line to add mew models
     # admin.add_view(ModelView(YourModelName, db.session))

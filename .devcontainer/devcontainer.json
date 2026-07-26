@@ -1,39 +1,25 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/postgres
 {
-	"name": "Python 3 & PostgreSQL",
+	"features": {
+  "ghcr.io/devcontainers/features/github-cli:1": {},
+  "ghcr.io/devcontainers/features/python:1": {},
+  "ghcr.io/devcontainers/features/copilot-cli:1": {}
+ },
+ "name": "Python 3 & PostgreSQL",
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "app",
-	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-	"customizations": {
-		"vscode": {
-			"settings": {
-				"editor.defaultFormatter": "esbenp.prettier-vscode",
-				"workbench.editorAssociations": {   
-					"*.md": "vscode.markdown.preview.editor"
-				}
-			},
-			"extensions": [ "esbenp.prettier-vscode", "MS-vsliveshare.vsliveshare" ]
-		}
-	},
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}"
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// This can be used to network with other containers or the host.
-	"forwardPorts": [5432, 3000],
-
-	"portsAttributes": {
-		"3000": {
-			"visibility": "public"
-			}
-	},
-
-	"onCreateCommand": "cp -n .env.example .env && pipenv install",
+	// "forwardPorts": [5000, 5432],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "pipenv install && bash database.sh && python docs/assets/welcome.py",
+	// "postCreateCommand": "pip install --user -r requirements.txt",
 
 	// Configure tool-specific properties.
 	// "customizations": {},
